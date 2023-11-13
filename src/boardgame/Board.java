@@ -28,4 +28,14 @@ public class Board {
     public void setColumns(int columns) {
         this.columns = columns;
     }
+
+    //metodo para retornar a peca de acordo com a linha e coluna
+    public Piece piece(int row, int columns){
+        return pieces[row][columns];
+    }
+
+    //metodo para retornar a peca de acordo com a posicao
+    public Piece piece(Position position){
+        return pieces[position.getRow()][position.getColumn()];
+    }
 }
