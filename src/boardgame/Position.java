@@ -27,8 +27,12 @@ public class Position {
         this.column = column;
     }
 
-    //toString parea imprimir a posicao na tela
+    public void setValues(int row, int column){
+        this.row = row;
+        this.column = column;
+    }
 
+    //toString para imprimir a posicao na tela
     @Override
     public String toString() {
         return row + ", " + column;
