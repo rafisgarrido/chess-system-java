@@ -8,6 +8,7 @@ import chess.pieces.Rook;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ChessMatch {
     //classe responsavel pelas regras do xadrez
@@ -15,6 +16,8 @@ public class ChessMatch {
     private int turn;
     private Color currentPlayer;
     private Board board;
+    //Booleano que ira indicar se a partida esta numa situacao de xeque ou nao
+    private boolean check;
 
     private List<Piece> piecesOnTheBoard = new ArrayList<>();
     private List<Piece> capturedPieces = new ArrayList<>();
@@ -32,6 +35,10 @@ public class ChessMatch {
 
     public Color getCurrentPlayer(){
         return currentPlayer;
+    }
+
+    public boolean getCheck(){
+        return check;
     }
 
     public ChessPiece[][] getPieces(){
@@ -64,6 +71,14 @@ public class ChessMatch {
         //Operacao responsavel por realizar o movimento da peca, para essa operacao temos posicao de origem e de destino
         Piece capturedPiece = makeMove(source, target);
 
+        //testar se o movimento colocou o proprio jogador em xeque
+        if(testCheck(currentPlayer)){
+            undoMove(source, target, capturedPiece);
+            throw new ChessException("You can't put yourself in check");
+        }
+        //verificar se o oponente se colocou em cheque
+         check = (testCheck(opponent(currentPlayer))) ? true : false;
+
         //Trocar o turno
         nextTurn();
         return (ChessPiece) capturedPiece;
@@ -80,12 +95,26 @@ public class ChessMatch {
         }
         return capturedPiece;
     }
+
+    //Metodo para desfazer movimento caso o jogador se coloque em xeque mate
+    private void undoMove(Position source, Position target, Piece capturedPiece){
+        Piece p = board.removePiece(target);
+        board.placePiece(p, source);
+
+        if(capturedPiece != null){
+            board.placePiece(capturedPiece, target);
+            capturedPieces.remove(capturedPiece);
+            piecesOnTheBoard.add(capturedPiece);
+        }
+    }
+
+
     private void validateSourcePosition(Position position){
         if (!board.positionExists(position)){
             throw new ChessException("There is no piece on source position.");
         }
 
-        //Excecao caso a peca que deseja mover seja do adversario
+   //Excecao caso a peca que deseja mover seja do adversario
         if(currentPlayer != ((ChessPiece)board.piece(position)).getColor()){
             throw new ChessException("The chosen piece is not yours.");
         }
@@ -104,6 +133,35 @@ public class ChessMatch {
     private void nextTurn(){
         turn++;
         currentPlayer = (currentPlayer == Color.WHITE) ? Color.BLACK : Color.WHITE;
+    }
+
+    //Ira devolver o oponente da cor
+    private Color opponent(Color color){
+        return (color == Color.WHITE) ? Color.BLACK : Color.WHITE;
+    }
+
+    //Metodo para localizar o rei de uma determinada cor
+    private ChessPiece king(Color color){
+        List<Piece> list = piecesOnTheBoard.stream().filter(x -> ((ChessPiece)x).getColor() == color).collect(Collectors.toList());
+        for (Piece p : list){
+            if (p instanceof King){
+                return (ChessPiece) p;
+            }
+        }
+        throw new IllegalStateException("There is no " + color + "king on the board");
+    }
+
+    //Para testar se o rei de uma determinada coisa esta em xeque, percorrendo todas as pecas adversarias e ver para cada uma das pecas se existe um movimento possivel que cai na casa do Rei.
+    private boolean testCheck(Color color){
+        Position kingPosition = king(color).getChessPosition().toPosition();
+        List<Piece> opponentPieces = piecesOnTheBoard.stream().filter(x -> ((ChessPiece)x).getColor() == opponent(color)).collect(Collectors.toList());
+        for (Piece p : opponentPieces){
+            boolean[][] mat = p.possibleMoves();
+            if(mat[kingPosition.getRow()][kingPosition.getColumn()]){
+                return true;
+            }
+        }
+        return false;
     }
 
     //Metodo para receber as coordenadas do xadrez
@@ -129,3 +187,9 @@ public class ChessMatch {
         placeNewPiece('d', 8, new King(board, Color.BLACK));
     }
 }
+
+
+
+
+
+
